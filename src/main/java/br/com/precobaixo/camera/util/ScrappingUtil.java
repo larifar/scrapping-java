@@ -45,6 +45,21 @@ public class ScrappingUtil {
 					String valor = obterSpanValor(gridResult);
 					System.out.println("Valor: " + valor);
 					System.out.println("****************************************************");
+				} else {
+					Document docGoogle = Jsoup.connect(href).get();
+					String descricao = obterItemGoogle(docGoogle).text();
+					System.out.println("Item: " + descricao);
+					Elements elementos = docGoogle.select("tbody#sh-osd__online-sellers-cont").select("tr.sh-osd__offer-row");
+					for (Element loja : elementos) {
+						Elements lojaConteudo = loja.select("td.SH30Lb>div.kPMwsc").select("a.b5ycib");
+						String nomeLoja = lojaConteudo.text().replace("Abre em uma nova janela", "");
+						System.out.println("Nome da loja: " + nomeLoja);
+						String urlLoja = decodificaUrl(lojaConteudo.attr("href").replace("/url?q=", ""));
+						System.out.println("Link da loja: " + urlLoja);
+						String valor = loja.select("td.SH30Lb>div>div.drzWO").text();
+						System.out.println("Valor: " + valor);
+						
+					}
 				}
 				
 			}
@@ -60,6 +75,10 @@ public class ScrappingUtil {
 	
 	public Element obterConteudo(Element elemento) {
 		return elemento.selectFirst("div.sh-dgr__content").selectFirst("span.C7Lkve");
+	}
+	
+	public Elements obterItemGoogle(Element elemento) {
+		return elemento.select("div.sg-product__dpdp-c").select("a.sh-t__title.sh-t__title-pdp.translate-content");
 	}
 	
 	public String obterSpanValor(Element elemento) {
@@ -82,14 +101,7 @@ public class ScrappingUtil {
 		    // Remova a parte "/url?url=" da URL
 		    href = href.replace("/url?url=", "");
 
-		    // Decodifique a URL
-		    String decodedHref;
-			try {
-				decodedHref = URLDecoder.decode(href, "UTF-8");
-				return decodedHref;
-			} catch (UnsupportedEncodingException e) {
-				return href;
-			}
+		    return decodificaUrl(href);
 		   
 		} else if (href.startsWith("/shopping/product")){
 			return "https://www.google.com.br" + tratarLinkGoogle(href);
@@ -118,6 +130,17 @@ public class ScrappingUtil {
 			return  href.substring(0, index)+ "/offers" + ITEM_PESQUISA_LOJA_GOOGLE + COMPLEMENTO_URL_GOOGLE;
 		} else {
 			return href;
+		}
+	}
+	
+	public String decodificaUrl(String url) {
+		// Decodifique a URL
+	    String decodedHref;
+		try {
+			decodedHref = URLDecoder.decode(url, "UTF-8");
+			return decodedHref;
+		} catch (UnsupportedEncodingException e) {
+			return url;
 		}
 	}
 
