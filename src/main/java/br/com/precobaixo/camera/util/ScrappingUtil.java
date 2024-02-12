@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
 
 import br.com.precobaixo.camera.dto.ItemGoogleDto;
 
@@ -21,8 +23,9 @@ public class ScrappingUtil {
 	private static final String ITEM_PESQUISA_LOJA_GOOGLE = "?q=camera+canon&tbm=shop";
 	private static final String COMPLEMENTO_URL_GOOGLE = "&hl=pt-BR";
 
-	public ItemGoogleDto obtemInfo(String url) {
-		ItemGoogleDto item = new ItemGoogleDto();
+	public List<ItemGoogleDto> obtemInfo() {
+		String url = BASE_URL_GOOGLE + ITEM_PESQUISA_LOJA_GOOGLE + COMPLEMENTO_URL_GOOGLE;
+		List<ItemGoogleDto> lista = new ArrayList();
 		Document documento = null;
 
 		try {
@@ -36,40 +39,36 @@ public class ScrappingUtil {
 			// Itere sobre os resultados
 			for (Element gridResult : gridResults) {
 				String href = obterLink(gridResult);
-				System.out.println("*************************************************************");
-				System.out.println("Link: " + href);
 				
 				if(!href.startsWith("https://www.google.com.br")) {
 					String descricao = obterDescricao(gridResult);
-					System.out.println("Item: " + descricao);
 					String valor = obterSpanValor(gridResult);
-					System.out.println("Valor: " + valor);
-					System.out.println("****************************************************");
+					lista.add(new ItemGoogleDto(descricao, valor, href));
+					
 				} else {
 					Document docGoogle = Jsoup.connect(href).get();
 					String descricao = obterItemGoogle(docGoogle).text();
-					System.out.println("Item: " + descricao);
 					Elements elementos = docGoogle.select("tbody#sh-osd__online-sellers-cont").select("tr.sh-osd__offer-row");
+					
 					for (Element loja : elementos) {
 						Elements lojaConteudo = loja.select("td.SH30Lb>div.kPMwsc").select("a.b5ycib");
 						String nomeLoja = lojaConteudo.text().replace("Abre em uma nova janela", "");
-						System.out.println("Nome da loja: " + nomeLoja);
 						String urlLoja = decodificaUrl(lojaConteudo.attr("href").replace("/url?q=", ""));
-						System.out.println("Link da loja: " + urlLoja);
 						String valor = loja.select("td.SH30Lb>div>div.drzWO").text();
-						System.out.println("Valor: " + valor);
+						lista.add(new ItemGoogleDto(descricao, valor, href, nomeLoja));
 						
 					}
 				}
 				
 			}
-			System.out.println("O total de itens achados foi: " + gridResults.size());
+			System.out.println(lista);
+			System.out.println("Total de itens buscados: " + lista.size());
 		} catch (Exception e) {
 			LOGGER.error("ERRO AO TENTAR CONECTAR NO GOOGLE COM JSOUP -> {}", e.getMessage());
 			e.printStackTrace();
 		}
 
-		return null;
+		return lista;
 	}
 	
 	
@@ -144,8 +143,4 @@ public class ScrappingUtil {
 		}
 	}
 
-	public static void main(String[] args) {
-		ScrappingUtil scrap = new ScrappingUtil();
-		scrap.obtemInfo(BASE_URL_GOOGLE + ITEM_PESQUISA_LOJA_GOOGLE + COMPLEMENTO_URL_GOOGLE);
-	}
 }
